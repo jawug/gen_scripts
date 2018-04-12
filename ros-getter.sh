@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 IFS=$'\n\t'
-
+ 
 #/ Usage: ./ros-getter.sh
 #/ Description: This script downloads the files used by Routerboard OS
 #/ Examples: ./ros-getter.sh checks and then gets the latest release if it has not already been downloaded
