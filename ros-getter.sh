@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 IFS=$'\n\t'
- 
+
 #/ Usage: ./ros-getter.sh
 #/ Description: This script downloads the files used by Routerboard OS
 #/ Examples: ./ros-getter.sh checks and then gets the latest release if it has not already been downloaded
@@ -53,17 +53,9 @@ declare -a dirArray=("routeros" "general" "all_packages" "dude" "chr" )
 
 info "Starting..."
 
-#cd $rosSaveDirectory || exit
 getLatestVersion() {
-    #   if [ -z "$1" ]
-    #    then
-    #        info "Getting the latest release"
     version=$(wget $wgetExtraParam $rosHTTPBaseURL/LATEST.6 -q -O - | awk '{print $1}')
     info "The latest release is $version"
-    #    else
-    #        info "Release parameter has been supplied. Using that in order to download specific ROS release"
-    #        version=$1
-    #    fi
 }
 
 determineVersion(){
@@ -124,7 +116,7 @@ checkReleaseExists() {
 downloadFile() {
     info "Downloading $2..."
     startDownload=$(date +%s)
-    wget -q --progress=bar $wgetExtraParam "$1"
+    wget -q --progress=bar $wgetExtraParam "$1" || exit
     endDownload=$(date +%s)
     filesize=$(wc -c "$2" | awk '{print $1}')
     downloadTime=$(( endDownload - startDownload ))
@@ -138,7 +130,8 @@ getRouterOSFiles(){
     do
         downloadFile "$rosHTTPBaseURL/$version/routeros-$i-$version.npk" "routeros-$i-$version.npk"
     done
-    cd - 2>&1 /dev/null || exit
+    #cd - > /dev/null || exit
+    cd - 2>&1 >/dev/null || exit
 }
 
 getGeneralFiles(){
@@ -147,7 +140,7 @@ getGeneralFiles(){
     downloadFile "$rosHTTPBaseURL/$version/mikrotik-$version.iso" "mikrotik-$version.iso"
     downloadFile "$rosHTTPBaseURL/$version/dude-install-$version.exe" "dude-install-$version.exe"
     downloadFile "$rosHTTPBaseURL/$version/netinstall-$version.zip" "netinstall-$version.zip"
-    cd - || exit &> /dev/null
+    cd - 2>&1 >/dev/null || exit
 }
 
 getAllPackagesFiles(){
@@ -157,7 +150,7 @@ getAllPackagesFiles(){
     do
         downloadFile "$rosHTTPBaseURL/$version/all_packages-$i-$version.zip" "all_packages-$i-$version.zip"
     done
-    cd - || exit &> /dev/null
+    cd - 2>&1 >/dev/null || exit
 }
 
 getDudeFiles(){
@@ -167,7 +160,7 @@ getDudeFiles(){
     do
         downloadFile "$rosHTTPBaseURL2/$version/dude-$version$i.npk" "dude-$version$i.npk"
     done
-    cd - || exit &> /dev/null
+    cd - 2>&1 >/dev/null || exit
 }
 
 getCHRFiles(){
@@ -177,17 +170,25 @@ getCHRFiles(){
     do
         downloadFile "$rosHTTPBaseURL/$version/chr-$version.$i" "chr-$version.$i"
     done
-    cd - || exit &> /dev/null
+    cd - 2>&1 >/dev/null || exit
+}
+
+checkTargetDirectory(){
+    if [ ! -d "$rosSaveDirectory" ]; then
+        error "Save directory \"$rosSaveDirectory\" does not exist"
+        exit 1
+    fi
 }
 
 if [[ "${BASH_SOURCE[0]}" = "$0" ]]; then
+    trap cleanup EXIT
+    checkTargetDirectory
     if [ -z "$version" ]; then
         determineVersion ""
     fi
     
-    cd "$rosSaveDirectory" || exit
+    cd "$rosSaveDirectory" || exit 1
     
-    #Check if the redownload parameter has been set
     if [ ! -z "$redownload" ]
     then
         createRequiredDirectories
@@ -211,7 +212,5 @@ if [[ "${BASH_SOURCE[0]}" = "$0" ]]; then
             getGeneralFiles
         fi
     fi
-    
-    trap cleanup EXIT
     
 fi
